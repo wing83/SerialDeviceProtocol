@@ -11,140 +11,292 @@ $(document).ready(function(){
 		}
 	});
 
-	function modbusTest01()
+	function modbusReadTest()
 	{
-		var modbus = new Modbus();
-		modbus.setMeterNumber(0x01);
-		modbus.setFunctionCode(0x03);
-		modbus.setStartRegAddress(0x00);
-		modbus.setRegCount(0x02);
-		var _result1 = modbus.getCmd();
-		var _data1 = new Uint8Array([0x01, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC4, 0x0B]);
+		var testArray = new Array();
+		var testItemReadCoil = {};
+		testItemReadCoil["meterNumber"] = 0x01;
+		testItemReadCoil["functionCode"] = 0x01;
+		testItemReadCoil["startRegAddress"] = 0x13;
+		testItemReadCoil["regCount"] = 0x13;
+		testItemReadCoil["resultCmd"] = new Uint8Array([0x01, 0x01, 0x00, 0x13, 0x00, 0x13, 0x8C, 0x02]);
+		testArray = testArray.concat(testItemReadCoil);
 
-		if(_result1 == null || !(_result1 instanceof Uint8Array))
-		{
-			throw "_result1 not right";
-		}
-
-		if(_result1.length != _data1.length)
-		{
-			throw "_result1's length is not right";
-		}
-
-		for(var i=0; i<_result1.length; i++)
-		{
-			if(_result1[i] != _data1[i])
+		testArray.forEach(function(element, index, array){
+			var modbus = new Modbus(element);
+			var _result = modbus.getCmd();
+			if(!utils.uint8ArrayCompare(element.resultCmd, _result["result"]))
 			{
-				throw "_result1 index of "+i+" data is not right";
+				throw "The index of " + index + " not pass.";
 			}
-		}
-
-		var _dataReturn1 = new Uint8Array([0x01, 0x03, 0x04, 0xAE, 0x17, 0x43, 0x44, 0x5B, 0xDC]);
-
-		var _resultObj = modbus.processCmd(_dataReturn1);
-
-		if(_resultObj.success)
-		{
-			var nValue = modbus.getRegFloatData(0, true);
-		}
-
-
-		console.log("pass");
+		});
 	}
 
-	function modbusTest02()
+	function modbusWriteTest()
 	{
-		var _sendData_1 = new Uint8Array([0x11, 0x03, 0x01, 0x30, 0x00, 0x03, 0x06, 0xA8]);
-		var _recvData_1 = new Uint8Array([0x11, 0x03, 0x06, 0x13, 0x88, 0x03, 0xE7, 0x03, 0xE9, 0x7F, 0x04]);
+		var testArray = new Array();
+		var testItemWriteOneCoil = {};
+		testItemWriteOneCoil["meterNumber"] = 0x01;
+		testItemWriteOneCoil["functionCode"] = 0x05;
+		testItemWriteOneCoil["startRegAddress"] = 0xAC;
+		testItemWriteOneCoil["writeData"] = [{
+			"regAddress": 0xAC,
+			"value": true,
+		}];
+		testItemWriteOneCoil["resultCmd"] = new Uint8Array([0x01, 0x05, 0x00, 0xAC, 0xFF, 0x00, 0x4C, 0x1B]);
+		testArray = testArray.concat(testItemWriteOneCoil);
 
-		var modbus = new Modbus();
-		modbus.setMeterNumber(0x11);
-		modbus.setFunctionCode(0x03);
-		modbus.setStartRegAddress(0x130);
-		modbus.setRegCount(0x03);
+		testArray.forEach(function(element, index, array){
+			var modbus = new Modbus(element);
 
-		var _result1 = modbus.getCmd();
-
-		if(_result1==null || !(_result1 instanceof Uint8Array))
-		{
-			throw "getCmd Error";
-		}
-
-		if(_result1.length != _sendData_1.length)
-		{
-			throw "getCmd's return data's length is not right.";
-		}
-
-		for(var i=0; i<_sendData_1.length; i++)
-		{
-			if(_result1[i] != _sendData_1[i])
+			if((0x05==element["functionCode"])
+				|| (0x0F==element["functionCode"]))
 			{
-				throw "_result1 index of "+i+" data is not right";
+				element["writeData"].forEach(function(item){
+					modbus.setCoilValue(item["regAddress"], item["value"]);
+				});
 			}
-		}
 
-		var _resultObj = modbus.processCmd(_recvData_1);
-
-		if((_resultObj.startIndex != 0)
-			|| (_resultObj.len != _recvData_1.length)
-			|| (_resultObj.completed != true)
-			|| (_resultObj.success != true))
-		{
-			throw "recv Data Process Error!";
-		}
-
-		var nF = modbus.getRegUint16Data(0x130);
-		var nV = modbus.getRegUint16Data(0x131);
-		var nV2 = modbus.getRegUint16Data(0x132);
-
+			var _result = modbus.getCmd();
+			if(!utils.uint8ArrayCompare(element.resultCmd, _result["result"]))
+			{
+				throw "The index of " + index + " not pass.";
+			}
+		});
 	}
 
-	function modbusTest03()
+	
+	function modbusParseReadTest() 
 	{
-		var _sendData = new Uint8Array([0x03, 0x02, 0x00, 0x00, 0x00, 0x0C, 0x79, 0xED]);
-		var _recvData = new Uint8Array([0x03, 0x02, 0x02, 0x02, 0x00, 0xC1, 0x18]);
-
-		var modbus = new Modbus();
-		modbus.setMeterNumber(0x03);
-		modbus.setFunctionCode(0x02);
-		modbus.setStartRegAddress(0x00);
-		modbus.setRegCount(0x0C);
-		var _result = modbus.getCmd();
-
-		if(_result==null || !(_result instanceof Uint8Array))
-		{
-			throw "getCmd Error";
-		}
-
-		if(_result.length != _sendData.length)
-		{
-			throw "getCmd's return data's length is not right.";
-		}
-
-		for(var i=0; i<_sendData.length; i++)
-		{
-			if(_result[i] != _sendData[i])
+		var testArray = new Array();
+		var testItemReadCoil = {};
+		testItemReadCoil["meterNumber"] = 0x01;
+		testItemReadCoil["functionCode"] = 0x01;
+		testItemReadCoil["startRegAddress"] = 0x13;
+		testItemReadCoil["regCount"] = 0x13;
+		testItemReadCoil["readData"] = [{
+				"regAddress": 0x13,
+				"value": true,
+			},
 			{
-				throw "_result1 index of "+i+" data is not right";
+				"regAddress": 0x14,
+				"value": false,
+			},
+			{
+				"regAddress": 0x17,
+				"value": false,
+			},
+			{
+				"regAddress": 0x1B,
+				"value": true,
+			}];
+		testItemReadCoil["resultCmd"] = new Uint8Array([0x01, 0x01, 0x03, 0xCD, 0x6B, 0x05, 0x42, 0x82]);
+		testArray = testArray.concat(testItemReadCoil);
+
+		var testItemReadReg = {};
+		testItemReadReg["meterNumber"] = 0x01;
+		testItemReadReg["functionCode"] = 0x03;
+		testItemReadReg["startRegAddress"] = 0x6B;
+		testItemReadReg["regCount"] = 0x03;
+		testItemReadReg["readData"] = [{
+				"regAddress": 0x6B,
+				"regCount" : 1,
+				"value": new Uint8Array([0x02, 0x2B]),
+				"type": "rawData"
+			},
+			{
+				"regAddress": 0x6B,
+				"value": 555,
+				"type": "uint16"
+			},
+			{
+				"regAddress": 0x6C,
+				"value": new Uint8Array([0x00, 0x00]),
+				"type": "rawData"
+			},
+			{
+				"regAddress": 0x6D,
+				"value": new Uint8Array([0x00, 0x64]),
+				"type": "rawData"
+			}];
+		testItemReadReg["resultCmd"] = new Uint8Array([0x01, 0x03, 0x06, 0x02, 0x2B, 0x00, 0x00, 0x00, 0x64, 0x05, 0x7A]);
+		testArray = testArray.concat(testItemReadReg);
+
+		testArray.forEach(function(element, index, array){
+			var modbus = new Modbus();
+			var _result = modbus.parseCmd(element["resultCmd"]);
+			if(!_result["success"])
+			{
+				throw "parse the index of "+index+" Error.";
 			}
-		}
 
-		var _resultObj = modbus.processCmd(_recvData);
-		if((_resultObj.startIndex != 0)
-			|| (_resultObj.len != _recvData.length)
-			|| (_resultObj.completed != true)
-			|| (_resultObj.success != true))
-		{
-			throw "recv Data Process Error!";
-		}
+			modbus.setStartRegAddress(element["startRegAddress"]);
+			modbus.setRegCount(element["regCount"]);
 
-		var _DI2 = modbus.getCoilData(0x01);
+			element["readData"].forEach(function(regItem, i){
+				if((0x01 === modbus.getFunctionCode())
+					||(0x02 === modbus.getFunctionCode()))
+				{
+					if(regItem["value"] !== modbus.getCoilValue(regItem["regAddress"])["result"])
+					{
+						throw "The test item of "+index+" 's coil value check "+i+" Error.";
+					}
+				}else
+				{
+					if(regItem["type"] === "rawData")
+					{
+						var _tmpObj = modbus.getRegValueForUint8Array(regItem["regAddress"], regItem["regCount"]);
+						if(!utils.uint8ArrayCompare(regItem["value"], _tmpObj["result"]))
+						{
+							throw "The test item of "+index+" 's get register raw value error.";
+						}
+					}else if(regItem["type"] === "uint16")
+					{
+						var _tmpObj = modbus.getRegValueForUint16(regItem["regAddress"], regItem["littleEndian"]);
+						if(!_tmpObj["success"]
+							|| (regItem["value"] != _tmpObj["result"]))
+						{
+							throw "The test item of "+index+" 's get register uint16 value error.";
+						}
+					}else if(regItem["type"] === "int16")
+					{
+						var _tmpObj = modbus.getRegValueForInt16(regItem["regAddress"], regItem["littleEndian"]);
+						if(!_tmpObj["success"]
+							|| (regItem["value"] != _tmpObj["result"]))
+						{
+							throw "The test item of "+index+" 's get register int16 value error.";
+						}
+					}else if(regItem["type"] === "uint32")
+					{
+						var _tmpObj = modbus.getRegValueForUint32(regItem["regAddress"], regItem["littleEndian"]);
+						if(!_tmpObj["success"]
+							|| (regItem["value"] != _tmpObj["result"]))
+						{
+							throw "The test item of "+index+" 's get register uint32 value error.";
+						}
+					}else if(regItem["type"] === "int32")
+					{
+						var _tmpObj = modbus.getRegValueForInt32(regItem["regAddress"], regItem["littleEndian"]);
+						if(!_tmpObj["success"]
+							|| (regItem["value"] != _tmpObj["result"]))
+						{
+							throw "The test item of "+index+" 's get register int32 value error.";
+						}
+					}else if(regItem["type"] === "float")
+					{
+						var _tmpObj = modbus.getRegValueForFloat(regItem["regAddress"], regItem["littleEndian"]);
+						if(!_tmpObj["success"]
+							|| (regItem["value"] != _tmpObj["result"]))
+						{
+							throw "The test item of "+index+" 's get register float value error.";
+						}
+					}
+				}
+			});
 
-		var _DI12 = modbus.getCoilData(0x0B);
-
+		});
 	}
+
+	function modbusParseWriteTest()
+	{
+		var testArray = new Array();
+		var testItemWriteOneCoil = {};
+		testItemWriteOneCoil["meterNumber"] = 0x01;
+		testItemWriteOneCoil["functionCode"] = 0x05;
+		testItemWriteOneCoil["startRegAddress"] = 0xAC;
+		testItemWriteOneCoil["writeData"] = true;
+		testItemWriteOneCoil["resultCmd"] = new Uint8Array([0x01, 0x05, 0x00, 0xAC, 0xFF, 0x00, 0x4C, 0x1B]);
+		testArray = testArray.concat(testItemWriteOneCoil);
+
+		var testItemWriteOneReg = {};
+		testItemWriteOneReg["meterNumber"] = 0x01;
+		testItemWriteOneReg["functionCode"] = 0x06;
+		testItemWriteOneReg["startRegAddress"] = 0x01;
+		testItemWriteOneReg["writeData"] = 0x03;
+		testItemWriteOneReg["writeDataType"] = "uint16"
+		testItemWriteOneReg["resultCmd"] = new Uint8Array([0x01, 0x06, 0x00, 0x01, 0x00, 0x03, 0x98, 0x0B]);
+		testArray = testArray.concat(testItemWriteOneReg);
+
+		var testItemWriteServerCoil = {};
+		testItemWriteServerCoil["meterNumber"] = 0x01;
+		testItemWriteServerCoil["functionCode"] = 0x0F;
+		testItemWriteServerCoil["startRegAddress"] = 0x13;
+		testItemWriteServerCoil["regCount"] = 0x0A;
+		testItemWriteServerCoil["resultCmd"] = new Uint8Array([0x01, 0x0F, 0x00, 0x13, 0x00, 0x0A, 0x24, 0x09]);
+		testArray = testArray.concat(testItemWriteServerCoil);
+
+		testArray.forEach(function(element, index, array){
+			var modbus = new Modbus();
+			var _result = modbus.parseCmd(element["resultCmd"]);
+			if(!_result["success"])
+			{
+				throw "parse the index of "+index+" Error.";
+			}
+			
+			if(modbus.getMeterNumber() !== element["meterNumber"])
+			{
+				throw "modbusParseWriteTest the index of "+index+" 's meterNumber error.";
+			}
+
+			if(modbus.getFunctionCode() !== element["functionCode"])
+			{
+				throw "modbusParseWriteTest the index of "+index+" 's functionCode error.";
+			}
+
+			if(modbus.getStartRegAddress() !== element["startRegAddress"])
+			{
+				throw "modbusParseWriteTest the index of "+index+" 's startRegAddress error.";
+			}
+
+			if(0x05 === modbus.getFunctionCode())
+			{
+				var _tmpObj = modbus.getCoilWriteValue();
+				if(!_tmpObj.success || _tmpObj["result"] !== element["writeData"])
+				{
+					throw "modbusParseWriteTest the index of "+index+" 's coil write value error.";
+				}
+			}else if(0x06 === modbus.getFunctionCode())
+			{
+				if("rawData" === element["writeDataType"])
+				{
+					var _tmpObj = modbus.getRegWriteValueForUint8Array();
+					if( !_tmpObj.success || !utils.uint8ArrayCompare(element["writeData"], _tmpObj.result))
+					{
+						throw "modbusParseWriteTest the index of "+index+" 's register write value error.";
+					}
+				}else if("uint16" === element["writeDataType"])
+				{
+					var _tmpObj = modbus.getRegWriteValueForUint16();
+					if(!_tmpObj.success || _tmpObj["result"] !== element["writeData"])
+					{
+						throw "modbusParseWriteTest the index of "+index+" 's register write value error.";
+					}
+				}else if("int16" === element["writeDataType"])
+				{
+					var _tmpObj = modbus.getRegWriteValueForInt16();
+					if(!_tmpObj.success || _tmpObj["result"] !== element["writeData"])
+					{
+						throw "modbusParseWriteTest the index of "+index+" 's register write value error.";
+					}
+				}
+			}else
+			{
+				if(modbus.getRegCount() !== element["regCount"])
+				{
+					throw "modbusParseWriteTest the index of "+index+" 's register count error.";
+				}
+			}
+		});
+	} 
 
 	$("#idModBusTest").click(function(){
-		modbusTest03();
+		
+		modbusReadTest();
+
+		modbusWriteTest();
+
+		modbusParseReadTest();
+
+		modbusParseWriteTest();
 	});
 });

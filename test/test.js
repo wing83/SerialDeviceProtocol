@@ -289,6 +289,66 @@ $(document).ready(function(){
 		});
 	} 
 
+	function modbusParseTest()
+	{
+		var testArray = new Array();
+
+		var testItemNotEnoughErro = {};
+		testItemNotEnoughErro["data"] = new Uint8Array([0x01, 0x83, 0x01, 0x80]);
+		testItemNotEnoughErro["startIndex"] = 0;
+		testItemNotEnoughErro["len"] = 0;
+		testItemNotEnoughErro["completed"] = false;
+		testItemNotEnoughErro["success"] = false;
+		testArray = testArray.concat(testItemNotEnoughErro);
+
+		var testItemNotEnoughRead = {};
+		testItemNotEnoughRead["data"] = new Uint8Array([0x01, 0x03, 0x06, 0x02, 0x2B, 0x00, 0x00, 0x12, 0x34, 0x09]);
+		testItemNotEnoughRead["startIndex"] = 0;
+		testItemNotEnoughRead["len"] = 0;
+		testItemNotEnoughRead["completed"] = false;
+		testItemNotEnoughRead["success"] = false;
+		testArray = testArray.concat(testItemNotEnoughRead);
+
+		var testItemNotEnoughWrite = {};
+		testItemNotEnoughWrite["data"] = new Uint8Array([0x01, 0x05, 0x00, 0xAC, 0xFF, 0x00, 0x4C]);
+		testItemNotEnoughWrite["startIndex"] = 0;
+		testItemNotEnoughWrite["len"] = 0;
+		testItemNotEnoughWrite["completed"] = false;
+		testItemNotEnoughWrite["success"] = false;
+		testArray = testArray.concat(testItemNotEnoughWrite);
+
+		var testItemEnoughErro = {};
+		testItemEnoughErro["data"] = new Uint8Array([0x01, 0x01, 0x83, 0x01, 0x80, 0xF0]);
+		testItemEnoughErro["startIndex"] = 1;
+		testItemEnoughErro["len"] = 5;
+		testItemEnoughErro["completed"] = true;
+		testItemEnoughErro["success"] = false;
+		testArray = testArray.concat(testItemEnoughErro);
+
+		var testItemErro = {};
+		testItemErro["data"] = new Uint8Array([0x01, 0x01, 0x87, 0x01, 0x80, 0xF0]);
+		testItemErro["startIndex"] = 0;
+		testItemErro["len"] = 0;
+		testItemErro["completed"] = false;
+		testItemErro["success"] = false;
+		testArray = testArray.concat(testItemErro);
+
+		
+		testArray.forEach(function(element, index, array){
+			var modbus = new Modbus();
+			var _result = modbus.parseCmd(element["data"]);
+
+			if((_result.startIndex !== element["startIndex"])
+				|| (_result.len !== element["len"])
+				|| (_result.completed !== element["completed"])
+				|| (_result.success !== element["success"]))
+			{
+				throw "parse index of "+index+" item error.";
+			}
+		});
+
+	}
+
 	$("#idModBusTest").click(function(){
 		
 		modbusReadTest();
@@ -298,5 +358,7 @@ $(document).ready(function(){
 		modbusParseReadTest();
 
 		modbusParseWriteTest();
+
+		modbusParseTest();
 	});
 });

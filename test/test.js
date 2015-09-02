@@ -360,5 +360,100 @@ $(document).ready(function(){
 		modbusParseWriteTest();
 
 		modbusParseTest();
+
+		console.log("Modbus test passed.");
+	});
+
+	function gb645_1997ReadTest()
+	{
+		var gb645 = new GB645_1997();
+		gb645.setMeterNumber("123456789");
+		gb645.setDI(0x9010);
+		gb645.setCtrlCode(0x01);
+
+		var _result = new Uint8Array([0x68, 0x89, 0x67, 0x45, 0x23, 0x01, 0x00, 0x68, 0x01, 0x02, 0x43, 0xC3, 0x32, 0x16]);
+
+		var _returnObj = gb645.getCmd();
+
+		if(!utils.uint8ArrayCompare(_result, _returnObj.result))
+		{
+			throw "error";
+		}
+	}
+
+	function HT_Encrypt(data, offset, len)
+	{
+		if(typeof(offset) == "undefined")
+		{
+			offset = 0;
+		}
+
+		if((typeof(len)==="undefined")
+			|| ((offset+len)>data.length))
+		{
+			len = data.length - offset;
+		}
+
+		for(var i=0; i<len; i++)
+	    {
+	        if ((i + 1)%2 == 0)
+	        {
+	            data[offset + i] = (data[offset + i] + 0x87 + i) & 0xFF ;
+	        }
+	        else {
+	            data[offset + i] = (data[offset + i] + 0x7b + i) & 0xFF ;
+	        }
+	    }
+	}
+
+	function HT_Decrypt(data, offset, len)
+	{
+		if(typeof(offset) == "undefined")
+		{
+			offset = 0;
+		}
+
+		if((typeof(len)==="undefined")
+			|| ((offset+len)>data.length))
+		{
+			len = data.length - offset;
+		}
+
+		for(var i=0; i<len; i++)
+	    {
+	        if ((i + 1)%2 == 0)
+	        {
+	            data[offset + i] = (data[offset + i] - 0x87 - i) & 0xFF;
+	        }
+	        else
+	        {
+	            data[offset + i] = (data[offset + i] - 0x7b - i) & 0xFF;
+	        }
+	    }
+	}
+
+	function HT_YuFuFeiTest()
+	{
+		var gb645 = new GB645_1997();
+		gb645.setEncryptFunction(HT_Encrypt);
+		gb645.setDecryptFunction(HT_Decrypt);
+		// gb645.setMeterNumber("823789");
+		// gb645.setDataLen(5);
+		// gb645.setDI(0xF062);
+
+		//var _cmdData = new Uint8Array([0x68, 0x89, 0x37, 0x82, 0x00, 0x00, 0x00, 0x68, 0x04, 0x05, 0xdd, 0x78, 0xe2, 0xcd, 0xa0, 0xBF, 0x16]);
+		var _cmdData = new Uint8Array([0x68, 0x89, 0x37, 0x82, 0x00, 0x00, 0x00, 0x68, 0x81, 0x0E, 0x69, 0x78, 0x7D, 0xDC, 0x7F, 0x8D, 0xD3, 0x8E, 0x85, 0xE2, 0x85, 0x95, 0xD9, 0x94, 0x36, 0x16]);
+
+		var _returnObj = gb645.parseCmd(_cmdData);
+
+		console.log(gb645.getMeterNumber());
+		console.log(gb645.getDI());
+		console.log(gb645.getDataForUint(2,3));
+	}
+
+	$("#idGB645_1997Test").click(function(){
+		gb645_1997ReadTest();
+
+		HT_YuFuFeiTest();
 	});
 });
